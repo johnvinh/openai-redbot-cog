@@ -5,7 +5,7 @@ import openai
 import discord
 from discord.ext.commands import Context
 from discord import Message
-from typing import List
+from typing import List, Sequence
 from dotenv import load_dotenv
 import os
 
@@ -57,7 +57,7 @@ class OpenAIStuff(commands.Cog):
         for page in pagify(output):
             await ctx.send(page)
 
-    def get_previous_n_messages(self, ctx: Context, n: int):
+    def get_previous_n_messages(self, ctx: Context, include_self: bool, n: int):
         """
         Get the previous 'n' messages formatted in an XML string for sending as a prompt.
         :param ctx: the command Context
@@ -65,8 +65,12 @@ class OpenAIStuff(commands.Cog):
         :return:    the 'n' previous messages formatted in an XML string
         """
         # Filter out messages from the bot and commands
-        filtered_messages: List[Message] = [message for message in self.bot.cached_messages if
-                                            message.author != self.bot.user]
+        filtered_messages: Sequence[Message] = self.bot.cached_messages
+
+        if not include_self:
+            filtered_messages: List[Message] = [message for message in self.bot.cached_messages if
+                                                message.author != self.bot.user]
+
         filtered_messages = [message for message in filtered_messages if not message.content.startswith(".")]
         filtered_messages = [message for message in filtered_messages if message.channel == ctx.channel]
 
@@ -98,7 +102,7 @@ class OpenAIStuff(commands.Cog):
             return
 
         # Filter out messages from the bot and commands
-        xml_output = self.get_previous_n_messages(ctx, n)
+        xml_output = self.get_previous_n_messages(ctx, False, n)
 
         # Generate a summary of the conversation
         response = openai.ChatCompletion.create(
@@ -110,3 +114,23 @@ class OpenAIStuff(commands.Cog):
             ]
         )
         await ctx.send(response.choices[0].message.content)
+
+    @commands.command(name="prompt2")
+    async def prompt_with_context(self, ctx: Context, *args):
+        """
+        Prompt but the bot has context of the previous messages.
+        """
+        prompt = ' '.join(args)
+        previous_messages_xml = self.get_previous_n_messages(ctx, True, 50)
+        # Generate a summary of the conversation
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system",
+                 "content": "Some users are having a conversation through Discord. The conversation is provided in XML format. You are a Discord bot named Sliske, answer the user's prompt."},
+                {"role": "user", "content": previous_messages_xml},
+                {"role": "user", "content": f"The user's prompt is: {prompt}"},
+            ]
+        )
+        await ctx.send(response.choices[0].message.content)
+
