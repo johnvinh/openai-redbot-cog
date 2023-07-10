@@ -36,7 +36,9 @@ class OpenAIStuff(commands.Cog):
                 {"role": "user", "content": prompt},
             ]
         )
-        await ctx.send(response.choices[0].message.content)
+        message = response.choices[0].message.content
+        for page in pagify(message):
+            await ctx.send(page)
 
     @commands.command(name="myname")
     async def my_name(self, ctx: Context):
