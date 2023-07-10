@@ -62,7 +62,7 @@ class OpenAIStuff(commands.Cog):
                                             message.author != self.bot.user]
         filtered_messages = [message for message in filtered_messages if not message.content.startswith(".")]
         filtered_messages = [message for message in filtered_messages if message.channel == ctx.channel]
-        
+
         selected_messages = filtered_messages[-n:]
         prompt = ""
         xml_output = ""
@@ -76,9 +76,6 @@ class OpenAIStuff(commands.Cog):
                 prompt += f"{message.author.name}: {message.content}\n"
                 xml_output += f"<MESSAGE>\n<AUTHOR>{message.author.name}</AUTHOR>\n<CONTENT>{message.content}</CONTENT>\n</MESSAGE>\n"
 
-        # await ctx.send(xml_output)
-
-        # await ctx.send(prompt)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
