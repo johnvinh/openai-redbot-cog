@@ -15,14 +15,18 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 
 
 class OpenAIStuff(commands.Cog):
-    """My custom cog"""
+    """A custom cog for Discord bot that uses OpenAI's GPT-3.5-turbo model."""
 
     def __init__(self, bot: redbot.core.bot.Red, *args, **kwargs):
+        """Initialize the cog with the bot instance."""
         super().__init__(*args, **kwargs)
         self.bot = bot
 
     @commands.command()
     async def prompt(self, ctx: Context, *args):
+        """
+        Process a prompt using OpenAI's GPT-3.5-turbo model and send the response to the Discord channel.
+        """
         prompt = ' '.join(args)
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -36,10 +40,16 @@ class OpenAIStuff(commands.Cog):
 
     @commands.command(name="myname")
     async def my_name(self, ctx: Context):
+        """
+        Respond with the nickname of the user who invoked the command.
+        """
         await ctx.send(f"Your name is {ctx.author.nick}.")
 
     @commands.command(name="previousmessages")
     async def previous_messages(self, ctx: Context):
+        """
+        Send all the cached messages from the bot to the Discord channel.
+        """
         output = ""
         for message in self.bot.cached_messages:
             output += f"{message.content}\n"
@@ -50,7 +60,7 @@ class OpenAIStuff(commands.Cog):
     @commands.command()
     async def summarize(self, ctx: Context, n: int):
         """
-        Summarize a conversation.
+        Summarize a conversation by selecting the last 'n' messages and generating a summary using OpenAI's GPT-3.5-turbo model.
         """
         try:
             int(n)
@@ -58,11 +68,13 @@ class OpenAIStuff(commands.Cog):
             await ctx.send("Bad number.")
             return
 
+        # Filter out messages from the bot and commands
         filtered_messages: List[Message] = [message for message in self.bot.cached_messages if
                                             message.author != self.bot.user]
         filtered_messages = [message for message in filtered_messages if not message.content.startswith(".")]
         filtered_messages = [message for message in filtered_messages if message.channel == ctx.channel]
 
+        # Select the last 'n' messages
         selected_messages = filtered_messages[-n:]
         prompt = ""
         xml_output = ""
@@ -76,6 +88,7 @@ class OpenAIStuff(commands.Cog):
                 prompt += f"{message.author.name}: {message.content}\n"
                 xml_output += f"<MESSAGE>\n<AUTHOR>{message.author.name}</AUTHOR>\n<CONTENT>{message.content}</CONTENT>\n</MESSAGE>\n"
 
+        # Generate a summary of the conversation
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
