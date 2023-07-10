@@ -61,7 +61,8 @@ class OpenAIStuff(commands.Cog):
         filtered_messages: List[Message] = [message for message in self.bot.cached_messages if
                                             message.author != self.bot.user]
         filtered_messages = [message for message in filtered_messages if not message.content.startswith(".")]
-
+        filtered_messages = [message for message in filtered_messages if message.channel == ctx.channel]
+        
         selected_messages = filtered_messages[-n:]
         prompt = ""
         xml_output = ""
