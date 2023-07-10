@@ -57,17 +57,13 @@ class OpenAIStuff(commands.Cog):
         for page in pagify(output):
             await ctx.send(page)
 
-    @commands.command()
-    async def summarize(self, ctx: Context, n: int):
+    def get_previous_n_messages(self, ctx: Context, n: int):
         """
-        Summarize a conversation by selecting the last 'n' messages and generating a summary using OpenAI's GPT-3.5-turbo model.
+        Get the previous 'n' messages formatted in an XML string for sending as a prompt.
+        :param ctx: the command Context
+        :param n:   the number of previous messages to get
+        :return:    the 'n' previous messages formatted in an XML string
         """
-        try:
-            int(n)
-        except ValueError:
-            await ctx.send("Bad number.")
-            return
-
         # Filter out messages from the bot and commands
         filtered_messages: List[Message] = [message for message in self.bot.cached_messages if
                                             message.author != self.bot.user]
@@ -87,6 +83,22 @@ class OpenAIStuff(commands.Cog):
             else:
                 prompt += f"{message.author.name}: {message.content}\n"
                 xml_output += f"<MESSAGE>\n<AUTHOR>{message.author.name}</AUTHOR>\n<CONTENT>{message.content}</CONTENT>\n</MESSAGE>\n"
+
+        return xml_output
+
+    @commands.command()
+    async def summarize(self, ctx: Context, n: int):
+        """
+        Summarize a conversation by selecting the last 'n' messages and generating a summary using OpenAI's GPT-3.5-turbo model.
+        """
+        try:
+            int(n)
+        except ValueError:
+            await ctx.send("Bad number.")
+            return
+
+        # Filter out messages from the bot and commands
+        xml_output = self.get_previous_n_messages(ctx, n)
 
         # Generate a summary of the conversation
         response = openai.ChatCompletion.create(
